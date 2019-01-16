@@ -2,10 +2,26 @@ import cherrypy
 import os
 import json
 from serial_control import SerialControl
+import cv2
+import base64
 
 
 baudrate = 115200  # this should match the baudrate set in the arduino firmware
 controller = SerialControl(baudrate)
+
+camera_01 = cv2.VideoCapture(1)
+
+
+def get_image(camera):
+    ret, frame = camera.read()
+    return frame
+
+
+def get_image_uri(img):
+    img_str = cv2.imencode('.png', img)[1]
+    data64 = base64.b64encode(img_str)
+    data_uri = data64.decode('utf-8').replace("\n", "")
+    return data_uri
 
 
 class RootServer(object):
@@ -18,17 +34,16 @@ class RootServer(object):
     def stop_server(self, **params):
         cherrypy.response.headers['Access-Control-Allow-Origin'] = '*'  # CORS
         controller.kill()
+        camera_01.release()
         cherrypy.engine.exit()
 
     @cherrypy.expose
-    def set_led_intensity(self, **params):
+    def get_image(self, **params):
         cherrypy.response.headers['Access-Control-Allow-Origin'] = '*'  # CORS
-        return 'yay'
-
-    @cherrypy.expose
-    def get_led_intensity(self, **params):
-        cherrypy.response.headers['Access-Control-Allow-Origin'] = '*'  # CORS
-        return 'yay'
+        img = get_image(camera_01)
+        uri = get_image_uri(img)
+        html = '<img src="data:image/png;base64,' + uri + '" />'
+        return html
 
     @cherrypy.expose
     def toggle(self, **params):
