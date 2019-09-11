@@ -12,7 +12,7 @@ function loop(){
     update_liveview();
     setTimeout(function(){
         loop();
-    }, 1000.0/15);
+    }, 1000.0/30);
 }
 
 loop();
